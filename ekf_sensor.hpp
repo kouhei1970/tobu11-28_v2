@@ -22,8 +22,8 @@
 #define PIN_SCK  10
 #define PIN_MOSI 11
 #define GRAV (9.80665)
-#define MN (0.75)
-#define MD (0.75)
+//#define MN (0.75)
+//#define MD (0.75)
 #define PI (3.14159)
 
 using Eigen::MatrixXd;
@@ -46,24 +46,13 @@ extern float q3;
 extern float dp;
 extern float dq;
 extern float dr;
-/*extern  lsm9ds1_id_t whoamI;
-extern  lsm9ds1_status_t reg;
-extern  uint8_t rst;
-extern  uint8_t tx_buffer_imu[1000];
-extern  uint8_t tx_buffer_mag[1000];
-extern float Acceleration_mg[3];
-extern float Angular_rate_mdps[3];
-extern float Magnetic_field_mgauss[3];*/
 extern sensbus_t Ins_bus;
 extern sensbus_t Mag_bus;
 extern stmdev_ctx_t Imu_h;
 extern stmdev_ctx_t Mag_h;
 extern float dt;
-//std::random_device rnd;
-//std::mt19937 mt(rnd());  
-//std::normal_distribution<> norm(0.0, 1.0);
+extern float MN,ME,MD;
 
-//uint8_t observation_equation(Matrix<float, 7, 1>x, Matrix<float, 6, 1>&z, float g, float mn, float md);
 void imu_mag_data_read(void);
 void imu_mag_init(void);
 float Psi(Matrix<float, 7, 1>x);
@@ -74,9 +63,9 @@ uint8_t ekf( Matrix<float, 7, 1> &xe,
              Matrix<float, 7, 7> &P,
              Matrix<float, 6, 1> z,
              Matrix<float, 3, 1> omega,
-             Matrix<float, 3, 3> Q, 
+             Matrix<float, 6, 6> Q, 
              Matrix<float, 6, 6> R, 
-             Matrix<float, 7, 3> G,
+             Matrix<float, 7, 6> G,
              Matrix<float, 3, 1> beta,
              float dt);
 #endif

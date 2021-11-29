@@ -1,6 +1,9 @@
 #include "ekf_sensor.hpp"
 
+
 //グローバル変数
+float MN=0.75, ME=0.0, MD=0.75;
+
 int16_t data_raw_acceleration[3];
 int16_t data_raw_angular_rate[3];
 int16_t data_raw_magnetic_field[3];
@@ -113,7 +116,12 @@ uint8_t state_equation( Matrix<float, 7, 1> &xe,
 }
 
 //Observation Equation
-uint8_t observation_equation(Matrix<float, 7, 1>x, Matrix<float, 6, 1>&z, float g, float mn, float md)
+uint8_t observation_equation( Matrix<float, 7, 1>x, 
+                              Matrix<float, 6, 1>&z, 
+                              float g, 
+                              float mn, 
+                              float me, 
+                              float md)
 {
   float q0 = x(0, 0);
   float q1 = x(1, 0);
@@ -123,10 +131,9 @@ uint8_t observation_equation(Matrix<float, 7, 1>x, Matrix<float, 6, 1>&z, float 
   z(0, 0) = 2.0*(q1*q3 - q0*q2)*g;
   z(1, 0) = 2.0*(q2*q3 + q0*q1)*g;
   z(2, 0) = (q0*q0 - q1*q1 - q2*q2 + q3*q3)*g ;
-  z(3, 0) = (q0*q0 + q1*q1 - q2*q2 - q3*q3)*mn + 2.0*(q1*q3 - q0*q2)*md;
-  z(4, 0) = 2.0*(q1*q2 - q0*q3)*mn + 2.0*(q2*q3 + q0*q1)*md;
-  z(5, 0) = 2.0*(q1*q3 + q0*q2)*mn + (q0*q0 - q1*q1 - q2*q2 + q3*q3)*md;
-  
+  z(3, 0) = (q0*q0 + q1*q1 - q2*q2 - q3*q3)*mn + 2.0*(q1*q2 + q0*q3)*me + 2.0*(q1*q3 - q0*q2)*md;
+  z(4, 0) = 2.0*(q1*q2 - q0*q3)*mn + (q0*q0 - q1*q1 + q2*q2 -q3*q3)*me + 2.0*(q2*q3 + q0*q1)*md;
+  z(5, 0) = 2.0*(q1*q3 + q0*q2)*mn + 2.0*(q2*q3 - q0*q1)*me + (q0*q0 - q1*q1 - q2*q2 + q3*q3)*md;
   return 0;
 }
 
@@ -221,7 +228,8 @@ uint8_t F_jacobian( Matrix<float, 7, 7>&F,
 uint8_t H_jacobian( Matrix<float, 6, 7> &H, 
                     Matrix<float, 7, 1> x, 
                     float g, 
-                    float mn, 
+                    float mn,
+                    float me, 
                     float md)
 {
   float q0 = x(0, 0);
@@ -256,29 +264,29 @@ uint8_t H_jacobian( Matrix<float, 6, 7> &H,
   H(2, 5) = 0.0;
   H(2, 6) = 0.0;
   
-  //z(3, 0) = (q0*q0 + q1*q1 - q2*q2 - q3*q3)*mn + 2.0*(q1*q3 - q0*q2)*md;
-  H(3, 0) = 2.0*( q0*mn - q2*md);
-  H(3, 1) = 2.0*( q1*mn + q3*md);
-  H(3, 2) = 2.0*(-q2*mn - q0*md);
-  H(3, 3) = 2.0*(-q3*mn + q1*md);
+  //z(3, 0) = (q0*q0 + q1*q1 - q2*q2 - q3*q3)*mn + 2.0*(q1*q2 + q0*q3)*me + 2.0*(q1*q3 - q0*q2)*md;
+  H(3, 0) = 2.0*( q0*mn + q3*me - q2*md);
+  H(3, 1) = 2.0*( q1*mn + q2*me + q3*md);
+  H(3, 2) = 2.0*(-q2*mn + q1*me - q0*md);
+  H(3, 3) = 2.0*(-q3*mn + q0*me + q1*md);
   H(3, 4) = 0.0;
   H(3, 5) = 0.0;
   H(3, 6) = 0.0;
   
-  //z(4, 0) = 2.0*(q1*q2 - q0*q3)*mn + 2.0*(q2*q3 + q0*q1)*md;
-  H(4, 0) = 2.0*(-q3*mn + q1*md);
-  H(4, 1) = 2.0*( q2*mn + q0*md);
-  H(4, 2) = 2.0*( q1*mn + q3*md);
-  H(4, 3) = 2.0*(-q0*mn + q2*md);
+  //z(4, 0) = 2.0*(q1*q2 - q0*q3)*mn + (q0*q0 - q1*q1 + q2*q2 -q3*q3)*me+ 2.0*(q2*q3 + q0*q1)*md;
+  H(4, 0) = 2.0*(-q3*mn + q0*me + q1*md);
+  H(4, 1) = 2.0*( q2*mn - q1*me + q0*md);
+  H(4, 2) = 2.0*( q1*mn + q2*me + q3*md);
+  H(4, 3) = 2.0*(-q0*mn - q3*me + q2*md);
   H(4, 4) = 0.0;
   H(4, 5) = 0.0;
   H(4, 6) = 0.0;
   
-  //z(5, 0) = 2.0*(q1*q3 + q0*q2)*mn + (q0*q0 - q1*q1 - q2*q2 + q3*q3)*md;
-  H(5, 0) = 2.0*( q2*mn + q0*md);
-  H(5, 1) = 2.0*( q3*mn - q1*md);
-  H(5, 2) = 2.0*( q0*mn - q2*md);
-  H(5, 3) = 2.0*( q1*mn + q3*md);
+  //z(5, 0) = 2.0*(q1*q3 + q0*q2)*mn + 2.0*(q2*q3 - q0*q1)*me + (q0*q0 - q1*q1 - q2*q2 + q3*q3)*md;
+  H(5, 0) = 2.0*( q2*mn - q1*me + q0*md);
+  H(5, 1) = 2.0*( q3*mn - q0*me - q1*md);
+  H(5, 2) = 2.0*( q0*mn + q3*me - q2*md);
+  H(5, 3) = 2.0*( q1*mn + q2*me + q3*md);
   H(5, 4) = 0.0;
   H(5, 5) = 0.0;
   H(5, 6) = 0.0;
@@ -292,9 +300,9 @@ uint8_t ekf( Matrix<float, 7, 1> &xe,
              Matrix<float, 7, 7> &P,
              Matrix<float, 6, 1> z,
              Matrix<float, 3, 1> omega,
-             Matrix<float, 3, 3> Q, 
+             Matrix<float, 6, 6> Q, 
              Matrix<float, 6, 6> R, 
-             Matrix<float, 7, 3> G,
+             Matrix<float, 7, 6> G,
              Matrix<float, 3, 1> beta,
              float dt)
 {
@@ -307,12 +315,12 @@ uint8_t ekf( Matrix<float, 7, 1> &xe,
   float mag;
 
   //Update
-  H_jacobian(H, xp, GRAV, MN, MD);
+  H_jacobian(H, xp, GRAV, MN, ME, MD);
   Den = H * P * H.transpose() + R;
   //PartialPivLU< Matrix<float, 6, 6> > dec(Den);
   //Den = dec.solve(I6);
   K = P * H.transpose() * Den.inverse();
-  observation_equation(xp, zbar, GRAV, MN, MD);
+  observation_equation(xp, zbar, GRAV, MN, ME, MD);
   xe = xp + K*(z - zbar);
   P = P - K*H*P;
 

@@ -15,9 +15,9 @@ extern Matrix<float, 3, 1> omega_m ;
 extern Matrix<float, 3, 1> omega_sim;
 extern Matrix<float, 3, 1> domega;
 extern Matrix<float, 3, 1> domega_sim;
-extern Matrix<float, 3, 3> Q ;
+extern Matrix<float, 6, 6> Q ;
 extern Matrix<float, 6, 6> R ;
-extern Matrix<float, 7 ,3> G;
+extern Matrix<float, 7 ,6> G;
 extern Matrix<float, 3 ,1> beta;
 void MAINLOOP(void);
 #endif
